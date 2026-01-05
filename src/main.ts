@@ -1,25 +1,29 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { Logger } from 'nestjs-pino';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import { ValidationPipe } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { Logger } from "nestjs-pino";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
 
   // Use Pino logger
   app.useLogger(app.get(Logger));
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix("api/v1");
 
   const configService = app.get(ConfigService);
 
-  const port = configService.get<number>('PORT');
-  const corsOrigins = configService.get<string>('CORS_ORIGIN')?.split(',');
+  const port = configService.get<number>("PORT");
+  const corsOrigins = configService
+    .get<string>("CORS_ORIGIN")
+    ?.split(",");
 
   app.enableCors({
     origins: corsOrigins,
@@ -31,19 +35,29 @@ async function bootstrap() {
   // Configure Helmet with strict security headers
   app.use(
     helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-        },
-      },
+      contentSecurityPolicy:
+        process.env.NODE_ENV === "production"
+          ? {
+              directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: [
+                  "'self'",
+                  "'unsafe-inline'",
+                  "'unsafe-eval'",
+                  "https://cdn.example.com",
+                ],
+                styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+                imgSrc: ["'self'", "data:", "https:"],
+                connectSrc: ["'self'", "https://api.example.com"],
+                fontSrc: ["'self'", "https:"],
+              },
+            }
+          : false,
       crossOriginEmbedderPolicy: true,
-      crossOriginOpenerPolicy: { policy: 'same-origin' },
-      crossOriginResourcePolicy: { policy: 'same-origin' },
+      crossOriginOpenerPolicy: { policy: "same-origin" },
+      crossOriginResourcePolicy: { policy: "same-origin" },
       dnsPrefetchControl: { allow: false },
-      frameguard: { action: 'deny' },
+      frameguard: { action: "deny" },
       hidePoweredBy: true,
       hsts: {
         maxAge: 31536000,
@@ -52,9 +66,9 @@ async function bootstrap() {
       },
       ieNoOpen: true,
       noSniff: true,
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
       xssFilter: true,
-    }),
+    })
   );
 
   app.useGlobalPipes(
@@ -62,7 +76,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // Get logger instance
@@ -78,7 +92,7 @@ async function bootstrap() {
 
   logger.log(
     `🚀 Application is running on: http://localhost:${port || 8080}/api/v1`,
-    'Bootstrap',
+    "Bootstrap"
   );
 }
 void bootstrap();

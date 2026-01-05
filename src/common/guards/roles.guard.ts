@@ -4,25 +4,19 @@ import {
   ForbiddenException,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-
-// ORM-agnostic UserRole enum - define your own or import from your ORM
-export enum UserRole {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-}
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { ROLES_KEY } from "../decorators/roles.decorator";
+import { UserRole } from "@prisma/client";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
-      ROLES_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const requiredRoles = this.reflector.getAllAndOverride<
+      UserRole[]
+    >(ROLES_KEY, [context.getHandler(), context.getClass()]);
 
     if (!requiredRoles) {
       return true;
@@ -33,11 +27,13 @@ export class RolesGuard implements CanActivate {
     }>();
     const { user } = request;
     if (!user) {
-      throw new UnauthorizedException('User not found in request');
+      throw new UnauthorizedException("User not found in request");
     }
 
     if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('Insufficient role to access this resource');
+      throw new ForbiddenException(
+        "Insufficient role to access this resource"
+      );
     }
 
     return true;
